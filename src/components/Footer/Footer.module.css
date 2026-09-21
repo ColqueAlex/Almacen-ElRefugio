@@ -1,0 +1,11 @@
+.pie {
+  background: var(--texto);
+  color: white;
+  padding: 20px 24px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.pie p { 
+  margin: 4px 0; 
+}

@@ -1,0 +1,28 @@
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--principal);
+  color: white;
+}
+
+.logo {
+  height: 40px;
+}
+
+.titulo {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.menu {
+  margin-left: auto;
+  display: flex;
+  gap: 16px;
+}
+
+.menu a {
+  color: white;
+  text-decoration: none;
+}
