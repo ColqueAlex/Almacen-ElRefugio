@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Django local environment and database
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/db.sqlite3

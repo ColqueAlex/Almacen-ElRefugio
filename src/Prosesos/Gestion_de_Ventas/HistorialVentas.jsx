@@ -36,7 +36,7 @@ function HistorialVentas({
 
   return (
     <div className="historial-ventas-page">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '18px' }}>
         <div>
           <span className="subtitle-badge">Registro de Operaciones</span>
           <h1 className="page-title">Historial de Ventas</h1>

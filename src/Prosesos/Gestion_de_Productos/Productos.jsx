@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './inventario.css';
 
 function GestionProductos() {
+const navigate = useNavigate();
+const location = useLocation();
 
   // ESTADOS DEL COMPONENTE
 
@@ -10,6 +13,10 @@ const [proveedores, setProveedores] = useState([]);
 const [categorias, setCategorias] = useState([]);
 const [isModalOpen, setIsModalOpen] = useState(false);
 const [recarga, setRecarga] = useState(0);
+const [errorCarga, setErrorCarga] = useState('');
+const [errorGuardar, setErrorGuardar] = useState('');
+const [guardando, setGuardando] = useState(false);
+const [mensajeExito, setMensajeExito] = useState(() => location.state?.mensajeExito || '');
 
   // Estados para filtros
 const [filtros, setFiltros] = useState({
@@ -24,21 +31,24 @@ useEffect(() => {
     let vigente = true;
     const queryParams = new URLSearchParams(filtros).toString();
 
-    fetch(`/api/productos?${queryParams}`)
+    fetch(`/api/productos/?${queryParams}`)
       .then(response => {
-        if (!response.ok) {
-          throw new Error(`Error al cargar productos: ${response.status}`);
-        }
-        return response.json();
+        return response.json().then(data => {
+          if (!response.ok) {
+            throw new Error(data.error || `Error al cargar productos: ${response.status}`);
+          }
+          return data;
+        });
       })
       .then(data => {
         if (!vigente) return;
+        setErrorCarga('');
         setProductos(data.productos ?? []);
         setCategorias(data.categorias ?? []);
         setProveedores(data.proveedores ?? []);
       })
       .catch(error => {
-        if (vigente) console.error('Error al cargar los datos:', error);
+        if (vigente) setErrorCarga(error.message || 'No se pudieron cargar los productos.');
       });
 
     return () => {
@@ -46,63 +56,76 @@ useEffect(() => {
     };
   }, [filtros, recarga]);
 
-  // Simula la vista 'guardar'
+useEffect(() => {
+    if (!mensajeExito) return undefined;
+
+    const timeoutId = setTimeout(() => setMensajeExito(''), 5000);
+    return () => clearTimeout(timeoutId);
+  }, [mensajeExito]);
+
+useEffect(() => {
+    if (location.state?.mensajeExito) {
+        navigate(location.pathname, { replace: true, state: null });
+    }
+}, [location.pathname, location.state, navigate]);
+
 const handleGuardarProducto = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     
-    // Captura los datos del formulario según los campos esperados en el backend[cite: 2]
-        const nuevoProducto = {
+    const nuevoProducto = {
         nombre: formData.get('nombre').trim(),
         categoria: formData.get('categoria').trim(),
-        // Asigna "Sin marca" por defecto si el campo está vacío[cite: 2]
-        marca: formData.get('marca').trim() || "Sin marca",
-        precio: parseFloat(formData.get('precio')),
-        estado: formData.get('estado') || "activo",
-        // Captura múltiples proveedores[cite: 2]
-        proveedores: formData.getAll('proveedores')
+        marca: formData.get('marca').trim() || 'Sin marca',
+        precio: formData.get('precio'),
+        estado: 'activo',
+        proveedores: formData.getAll('proveedores'),
     };
 
-        try {
-        const response = await fetch('/api/productos/guardar', {
+    setErrorGuardar('');
+    setGuardando(true);
+    try {
+        const response = await fetch('/api/productos/guardar/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(nuevoProducto)
         });
+        const data = await response.json();
 
-        if (response.ok) {
-            alert(`Producto "${nuevoProducto.nombre}" agregado al catálogo.`); // Feedback de éxito[cite: 2]
-            setIsModalOpen(false);
-            setRecarga(actual => actual + 1);
-        } else {
-            const errorData = await response.json();
-            alert(`Error: ${errorData.mensaje}`); // Ejemplo: Precio inválido o producto duplicado[cite: 2]
+        if (!response.ok) {
+            throw new Error(data.error || data.mensaje || 'No se pudo guardar el producto.');
         }
-        } catch (error) {
-        console.error('Error al guardar:', error);
-        }
+
+        setIsModalOpen(false);
+        setRecarga(actual => actual + 1);
+        setMensajeExito(data.mensaje || `Producto "${nuevoProducto.nombre}" agregado al catálogo.`);
+    } catch (error) {
+        setErrorGuardar(error.message || 'No se pudo conectar con el servidor.');
+    } finally {
+        setGuardando(false);
+    }
 };
 
-  // Simula la vista 'cambiar_estado'
 const handleCambiarEstado = async (idProducto, estadoActual) => {
-    // Alterna el estado entre 'activo' e 'inactivo'[cite: 2]
     const nuevoEstado = estadoActual === 'activo' ? 'inactivo' : 'activo';
 
-        try {
-        const response = await fetch(`/api/productos/${idProducto}/cambiar_estado`, {
-            method: 'POST',
+    try {
+        const response = await fetch(`/api/productos/${idProducto}/cambiar_estado/`, {
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ estado: nuevoEstado })
         });
+        const data = await response.json();
 
-        if (response.ok) {
-            // Actualización optimista del estado local
-            setProductos(productos.map(p => 
-            p.id === idProducto ? { ...p, estado: nuevoEstado } : p
-        ));
+        if (!response.ok) {
+            throw new Error(data.error || 'No se pudo cambiar el estado del producto.');
         }
+        setProductos(actuales => actuales.map(producto =>
+            producto.id === idProducto ? data.producto : producto
+        ));
+        setMensajeExito(data.mensaje || `Estado de "${data.producto.nombre}" cambiado a ${nuevoEstado}.`);
     } catch (error) {
-        console.error('Error al cambiar el estado:', error);
+        setErrorCarga(error.message || 'No se pudo cambiar el estado del producto.');
     }
 };
 
@@ -124,14 +147,21 @@ const sinStock = productos.filter(p => Number(p.stock) === 0).length;
 
 return (
     <>
+        {mensajeExito && (
+            <div className="products-success" role="status">
+                {mensajeExito}
+            </div>
+        )}
+
         {/* HEADER Y BOTÓN NUEVO PRODUCTO */}
         <div className="products-heading">
             <div>
-            <span className="subtitle-badge">Catálogo General y Control de Existencias</span>
-            <h1 className="page-title">Inventario y Productos</h1>
+                <span className="subtitle-badge">Catálogo General y Control de Existencias</span>
+                <h1 className="page-title">Inventario y Productos</h1>
             </div>
             <button type="button" className="btn-primary" onClick={() => setIsModalOpen(true)}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span> Nuevo Producto
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
+                Nuevo Producto
             </button>
         </div>
 
@@ -192,6 +222,8 @@ return (
             </div>
             </div>
         </div>
+
+        {errorCarga && <div className="products-error" role="alert">{errorCarga}</div>}
 
         {/* TABLA DE PRODUCTOS */}
         <div className="table-card">
@@ -255,7 +287,15 @@ return (
                             {producto.estado === 'activo' ? 'toggle_on' : 'toggle_off'}
                         </span>
                         </button>
-                        <button className="btn-icon" title="Editar"><span className="material-symbols-outlined">edit</span></button>
+                        <button
+                        type="button"
+                        className="btn-icon"
+                        title="Editar producto"
+                        aria-label={`Editar ${producto.nombre}`}
+                        onClick={() => navigate(`/consultar/editar/${producto.id}`)}
+                        >
+                        <span className="material-symbols-outlined">edit</span>
+                        </button>
                     </div>
                     </td>
                 </tr>
@@ -280,6 +320,7 @@ return (
                     </button>
                 </div>
                 <form onSubmit={handleGuardarProducto}>
+                    {errorGuardar && <div className="products-error" role="alert">{errorGuardar}</div>}
                     <input className="modal-producto-campo" type="text" name="nombre" placeholder="Nombre del producto" required />
                     <input className="modal-producto-campo" type="text" name="categoria" placeholder="Categoría" required />
                     <input className="modal-producto-campo" type="text" name="marca" placeholder="Marca (Opcional)" />
@@ -290,7 +331,9 @@ return (
                         <option key={prov.id} value={prov.id}>{prov.nombre}</option>
                     ))}
                     </select>
-                    <button type="submit" className="btn-primary modal-producto-guardar">Guardar en Catálogo</button>
+                    <button type="submit" className="btn-primary modal-producto-guardar" disabled={guardando}>
+                        {guardando ? 'Guardando...' : 'Guardar en Catálogo'}
+                    </button>
                 </form>
             </div>
             </div>

@@ -145,7 +145,7 @@ return (
 
                 {isAdmin && (
                 <>
-                    <a href="/listar-proveedores" className="module-card">
+                    <a href="/proveedores" className="module-card">
                     <div className="module-info">
                         <div className="module-icon icon-orange"><span className="material-symbols-outlined">local_shipping</span></div>
                         <div className="module-title">Proveedores</div>
