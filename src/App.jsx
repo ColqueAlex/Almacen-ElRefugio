@@ -11,6 +11,9 @@ import ProveedoresList from './Prosesos/Gestion_de_Proveedores/ProveedoresList';
 import ProveedorForm from './Prosesos/Gestion_de_Proveedores/ProveedorForm';
 import GestionCompra from './Prosesos/Gestion_de_Compras/ComprasList';
 import RegistroCompras from './Prosesos/Registro_de_Compras/RegistroCompras';
+import ListaUsuarios from './Prosesos/Gestion_de_Usuarios/ListaUsuarios';
+import FormularioUsuario from './Prosesos/Gestion_de_Usuarios/FormularioUsuario';
+import ListaAuditoria from './Prosesos/Auditoria/ListaAuditoria';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8001';
 
@@ -416,19 +419,13 @@ function App() {
     <BrowserRouter>
       <Layout user={currentUser} onLogout={() => setCurrentUser(null)}>
         <Routes>
-          <Route
-            path="/"
-            element={<DashboardPrincipal user={dashboardUser} />}
-          />
+          <Route path="/" element={<DashboardPrincipal user={dashboardUser} />} />
           <Route path="/consultar" element={<GestionProductos />} />
           <Route path="/consultar/editar/:id" element={<EditarProducto />} />
           <Route path="/registrar-venta" element={<RegistroVentas />} />
           <Route path="/ventas" element={<HistorialVentas />} />
           <Route path="/proveedores" element={<ProveedoresPage />} />
-          <Route
-            path="/proveedores/nuevo"
-            element={<ProveedorForm onGuardar={handleGuardarProveedor} />}
-          />
+          <Route path="/proveedores/nuevo" element={<ProveedorForm onGuardar={handleGuardarProveedor} />} />
           <Route
             path="/proveedores/editar/:id"
             element={
@@ -443,12 +440,16 @@ function App() {
           <Route path="/registrar-compra" element={<RegistroComprasPage />} />
           <Route path="/auditoria" element={<ModuleUnavailable name="Auditoría" />} />
           <Route path="/listar-auditoria" element={<ModuleUnavailable name="Auditoría" />} />
-          <Route path="/usuarios" element={<ModuleUnavailable name="Usuarios" />} />
+          <Route path="/usuarios" element={<ListaUsuarios />} />
+          <Route path="/usuarios/nuevo" element={<FormularioUsuario />} />
+          <Route path="/usuarios/editar/:dni" element={<FormularioUsuario />} />
           <Route path="/caja" element={<ModuleUnavailable name="Caja y arqueo" />} />
           <Route path="/gestion-caja" element={<ModuleUnavailable name="Caja" />} />
           <Route path="/clientes" element={<ModuleUnavailable name="Clientes" />} />
           <Route path="/cuentas-clientes" element={<ModuleUnavailable name="Cuentas de clientes" />} />
           <Route path="*" element={<ModuleUnavailable name="Página no encontrada" />} />
+          <Route path="/auditoria" element={<ListaAuditoria />} />
+          <Route path="/listar-auditoria" element={<ListaAuditoria />} />
         </Routes>
       </Layout>
     </BrowserRouter>
